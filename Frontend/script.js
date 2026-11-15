@@ -96,7 +96,7 @@ async function send() {
   sendBtn.disabled = true;
   wrap.classList.add('busy');
   hero.style.display = 'none';
-  thread.innerHTML = '';                       // stateless: no history is kept
+  // thread.innerHTML = '';                       // stateless: no history is kept
   thread.appendChild(message('user', 'You', text));
 
   const pending = message('assistant', 'Samson AI', '');
