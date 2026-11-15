@@ -29,6 +29,30 @@ function message(kind, label, text) {
   return d;
 }
 
+// Turns plain text into DOM nodes where http(s) links become clickable <a> tags.
+// Built with DOM nodes (not innerHTML), so the AI's text can never inject HTML.
+function linkify(el, text) {
+  el.textContent = '';
+  const urlRe = /https?:\/\/[^\s<>"')\]]+/g;
+  let last = 0, m;
+  while ((m = urlRe.exec(text)) !== null) {
+    let url = m[0];
+    const trailing = url.match(/[.,;:!?।]+$/);       // keep sentence punctuation outside the link
+    if (trailing) url = url.slice(0, -trailing[0].length);
+
+    el.appendChild(document.createTextNode(text.slice(last, m.index)));
+    const a = document.createElement('a');
+    a.href = url;
+    a.textContent = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    el.appendChild(a);
+    last = m.index + url.length;
+    urlRe.lastIndex = last;
+  }
+  el.appendChild(document.createTextNode(text.slice(last)));
+}
+
 // Gentle word-by-word reveal for a premium feel
 function reveal(el, text) {
   const words = text.split(/(\s+)/);
@@ -40,6 +64,7 @@ function reveal(el, text) {
     i += chunk;
     stage.scrollTop = stage.scrollHeight;
     if (i < words.length) requestAnimationFrame(() => setTimeout(step, 14));
+    else linkify(el, text);                          // links become clickable once typing finishes
   };
   step();
 }

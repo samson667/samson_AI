@@ -6,6 +6,7 @@ import ai from './ai.js'
 
 
 let app=express()
+app.use(express.json())
 let _absolute=fileURLToPath(import.meta.url)
 const __dirname = path.dirname(_absolute);
 export let public_folder= path.join(__dirname,"..","Frontend")
@@ -18,3 +19,4 @@ app.use('/',ai)
 app.listen(process.env.PORT,()=>{
      console.log(`Samson AI running on http://localhost:${process.env.PORT}`)
 })
+
