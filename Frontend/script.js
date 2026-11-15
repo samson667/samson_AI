@@ -1,6 +1,26 @@
 const $ = id => document.getElementById(id);
 const promptEl = $('prompt'), sendBtn = $('send'), thread = $('thread'), hero = $('hero'), stage = $('stage'), wrap = $('wrap');
 
+// Mobile keyboard handling: keep the layout exactly as tall as the visible area,
+// so the input bar sits right above the keyboard and nothing slides behind it.
+(function fitToVisibleArea() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const fullHeight = () => Math.max(window.innerHeight, vv.height);
+  let baseline = fullHeight();
+  const apply = () => {
+    document.documentElement.style.setProperty('--app-h', vv.height + 'px');
+    const keyboardOpen = baseline - vv.height > 120;
+    document.body.classList.toggle('kb-open', keyboardOpen);
+    window.scrollTo(0, 0);                               // the browser must never pan the page
+    if (keyboardOpen) stage.scrollTop = stage.scrollHeight;
+  };
+  vv.addEventListener('resize', apply);
+  vv.addEventListener('scroll', apply);
+  window.addEventListener('orientationchange', () => setTimeout(() => { baseline = fullHeight(); apply(); }, 350));
+  apply();
+})();
+
 promptEl.addEventListener('input', () => {
   promptEl.style.height = 'auto';
   promptEl.style.height = promptEl.scrollHeight + 'px';

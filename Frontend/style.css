@@ -11,11 +11,15 @@
   --c5: #34d399;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
-html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+html { height: 100%; overflow: hidden; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
 body {
+  /* --app-h is set by script.js to the visible height (shrinks when the keyboard opens).
+     The body is pinned to the top so the browser can never scroll the page behind the keyboard. */
+  position: fixed;
+  top: 0; left: 0; right: 0;
   height: 100vh;
-  height: 100dvh; /* follows the mobile browser's address bar and keyboard */
+  height: 100dvh;
+  height: var(--app-h, 100dvh);
   background: var(--bg);
   color: var(--text);
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -190,6 +194,13 @@ textarea::placeholder { color: #5a6172; }
   .hero .orb { display: none; }
   .chips { display: none; }
 }
+/* Keyboard is open: free up space so the chat and the input stay comfortable */
+.kb-open header { height: 50px; }
+.kb-open .logo { width: 30px; height: 30px; }
+.kb-open .hero { padding-top: 1vh; }
+.kb-open .hero .orb, .kb-open .chips, .kb-open .foot { display: none; }
+.kb-open .dock { padding-top: 4px; padding-bottom: 10px; }
+.kb-open .msg { margin-top: 14px; }
 /* Touch screens have no hover, so skip hover lift effects there */
 @media (hover: none) {
   .chip:hover, #send:hover { transform: none; box-shadow: none; }
