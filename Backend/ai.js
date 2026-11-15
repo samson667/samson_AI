@@ -12,6 +12,7 @@ res.sendFile(path.join(public_folder,"index.html"))
 router.post('/api/chat', async (req, res) => {
   try {
     const prompt = req.body.prompt
+    console.log(`USER Question  ${prompt} ❓`)
  const SYSTEM_PROMPT = `
         You are Samson AI, a helpful and professional AI assistant.
 
@@ -58,7 +59,7 @@ router.post('/api/chat', async (req, res) => {
     )
 
     const data = await geminiRes.json()
-    console.log(JSON.stringify(data, null, 2))   // শিখতে ও ডিবাগ করতে: আসল উত্তরের গঠন দেখুন
+    console.log(JSON.stringify(data.steps[1].content[0].text))   // শিখতে ও ডিবাগ করতে: আসল উত্তরের গঠন দেখুন
 
     // নতুন গঠন: steps -> model_output -> content -> text
     const step = data.steps?.find(s => s.type === 'model_output')
