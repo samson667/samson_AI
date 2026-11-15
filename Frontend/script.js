@@ -1,6 +1,9 @@
 const $ = id => document.getElementById(id);
 const promptEl = $('prompt'), sendBtn = $('send'), thread = $('thread'), hero = $('hero'), stage = $('stage'), wrap = $('wrap');
 
+// NOTUN: server ager conversation er ID ei variable e thake. Refresh dile null hoye jay (notun chat).
+let previousInteractionId = null;
+
 promptEl.addEventListener('input', () => {
   promptEl.style.height = 'auto';
   promptEl.style.height = promptEl.scrollHeight + 'px';
@@ -76,7 +79,6 @@ async function send() {
   sendBtn.disabled = true;
   wrap.classList.add('busy');
   hero.style.display = 'none';
-  // thread.innerHTML = '';                       // stateless: no history is kept
   thread.appendChild(message('user', 'You', text));
 
   const pending = message('assistant', 'Samson AI', '');
@@ -95,7 +97,8 @@ async function send() {
     const request = fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: text })
+      // NOTUN: prompt er sathe ager conversation er ID pathao
+      body: JSON.stringify({ prompt: text, previous_interaction_id: previousInteractionId })
     }).then(async res => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
@@ -103,6 +106,10 @@ async function send() {
     });
 
     const [data] = await Promise.all([request, minWait]);
+
+    // NOTUN: porer message er jonno notun ID save koro
+    if (data.interactionId) previousInteractionId = data.interactionId;
+
     pending.querySelector('.bubble').textContent = '';
     reveal(pending.querySelector('.bubble'), data.reply || '');
   } catch (err) {
