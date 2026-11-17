@@ -82,11 +82,15 @@ function linkify(el, text) {
 // An unfinished "**" (while the text is still being typed) is treated as bold until the end,
 // so asterisks never flash on screen.
 // **bold** handle kore. Closing ** na ashle ager ongsho bold hoye thake, tai typing e asterisk dekha jay na.
+// **bold** handle kore. Closing ** na ashle ager ongsho bold hoye thake (typing e asterisk dekha jay na).
+// Closing ** na thakle strong e 'open' class dei, jate typing er shomoy glass na lage.
 function inline(parent, text) {
-  text.split('**').forEach((part, i) => {
+  const parts = text.split('**');
+  parts.forEach((part, i) => {
     if (!part) return;
     if (i % 2) {
       const strong = document.createElement('strong');
+      if (i === parts.length - 1) strong.className = 'open';
       linkify(strong, part);
       parent.appendChild(strong);
     } else {
@@ -96,14 +100,14 @@ function inline(parent, text) {
 }
 
 // Markdown -> DOM (innerHTML noy, tai safe).
-// "* item" / "- item" / "1. item" => proper list (wrap hole alignment thik thake)
-// "## heading" => bold line
+// "* item" / "- item" / "1. item" / "১. item" => list
+// "## heading" ba puro-line-bold => heading (glassy)
 function render(el, text) {
   el.textContent = '';
   el.classList.add('md');
-  const stack = [];                      // nested list track
+  const stack = [];
   for (const line of text.replace(/\r/g, '').split('\n')) {
-    const li = line.match(/^(\s*)([*\-•]|\d+\.)\s+(.*)$/);
+    const li = line.match(/^(\s*)([*\-•]|\p{Nd}+[.)।])\s+(.*)$/u);   // Bangla digit o chene
     if (li) {
       const indent = li[1].length;
       while (stack.length && stack[stack.length - 1].indent > indent) stack.pop();
@@ -115,9 +119,16 @@ function render(el, text) {
         stack.push(top);
       }
       const item = document.createElement('li');
-      const num = li[2].match(/^\d+\./);
-      if (num) item.classList.add('num');
-      inline(item, (num ? li[2] + ' ' : '') + li[3]);
+      const isNum = /^\p{Nd}+[.)।]$/u.test(li[2]);
+      let body = li[3];
+      if (isNum) {
+        item.classList.add('num');
+        // number ke bold er bhitore dhukai, jate number shoho glassy hoy
+        body = body.startsWith('**')
+          ? '**' + li[2] + ' ' + body.slice(2)
+          : li[2] + ' ' + body;
+      }
+      inline(item, body);
       top.ul.appendChild(item);
       top.lastLi = item;
       continue;
@@ -126,18 +137,15 @@ function render(el, text) {
     if (!line.trim()) { el.appendChild(Object.assign(document.createElement('div'), { className: 'gap' })); continue; }
     const h = line.match(/^#{1,6}\s+(.*)$/);
     const p = document.createElement('div');
-   
-    const isHead = h || /^\s*\*\*[^*]+(\*\*)?\s*$/.test(line); // puro line ta bold hole = heading
+    const isHead = h || /^\s*\*\*[^*]+(\*\*)?\s*$/.test(line);
     const raw = h ? h[1] : line;
-    const already = /^\s*(\*\*)?\p{Nd}+[.)।]/u.test(raw);      // AI nijei number likhle auto-number lagbe na
+    const already = /^\s*(\*\*)?\p{Nd}+[.)।]/u.test(raw);
     p.className = 'para' + (isHead ? ' head' : '') + (isHead && already ? ' hasnum' : '');
-
     inline(p, h ? '**' + h[1] + '**' : line);
     el.appendChild(p);
   }
-    el.classList.toggle('bn', /[\u0980-\u09FF]/.test(text)); // Bangla lekha hole bn class
+  el.classList.toggle('bn', /[\u0980-\u09FF]/.test(text));
 }
-
 // Gentle word-by-word reveal for a premium feel
 function reveal(el, text) {
   const words = text.split(/(\s+)/);

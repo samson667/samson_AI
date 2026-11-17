@@ -244,3 +244,13 @@ textarea::placeholder { color: #5a6172; }
 .bubble .para.head:not(.hasnum) { counter-increment: sec; }
 .bubble .para.head:not(.hasnum) strong::before { content: counter(sec) ". "; }
 .bubble.bn .para.head:not(.hasnum) strong::before { content: counter(sec, bengali) ". "; }
+/* Numbered point er title (1. Choose a Path: / ১. প্রোগ্রামিং ল্যাঙ্গুয়েজ শিখুন:) = glassy, number shoho */
+.bubble li.num > strong:first-child:not(.open) {
+  padding: 1px 10px; margin: 0 1px; border-radius: 8px;
+  background: linear-gradient(135deg, rgba(109,124,255,.34), rgba(168,85,247,.26));
+  border: 1px solid rgba(175,165,255,.38);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 0 14px rgba(124,92,255,.18);
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+/* typing cholar shomoy (closing ** ashar age) heading er glass off */
+.bubble .para.head strong.open { background: none; border: 0; box-shadow: none; padding: 0; }
