@@ -274,12 +274,23 @@ textarea::placeholder { color: #5a6172; }
 .cc-photo img { display: block; width: 100%; max-height: 380px; object-fit: cover; object-position: center top; border-radius: 17px; background: var(--bg); }
 
 .cc-label { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+
+/* Label, naam, Instagram: ekta column e, upor theke niche */
+.cc-info { display: flex; flex-direction: column; align-items: flex-start; }
+
 .cc-name {
-  font-size: 26px; font-weight: 700; letter-spacing: -.4px; line-height: 1.3;
-  background: linear-gradient(90deg, var(--c1), var(--c2), var(--c3), var(--c4), var(--c5), var(--c1));
-  background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
-  animation: flow 3s linear infinite;
+  font-size: 34px; font-weight: 800; font-style: italic; letter-spacing: -.5px; line-height: 1.25;
+  margin: 2px 0 4px;
+  padding-right: .15em;            /* italic er dan er kon jate kete na jay */
+  background: linear-gradient(100deg, #ff4d6d 0%, #a855f7 25%, #4d7cff 50%, #22d3ee 75%, #ff4d6d 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 16px rgba(124,92,255,.5));
+  animation: nameFlow 4s linear infinite;
 }
+@keyframes nameFlow { to { background-position: -200% 0; } }
+
 .cc-link {
   display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; padding: 7px 16px 7px 12px; border-radius: 999px;
   background: linear-gradient(135deg, rgba(109,124,255,.30), rgba(168,85,247,.22));
@@ -295,7 +306,7 @@ textarea::placeholder { color: #5a6172; }
   .cc { flex-direction: column; align-items: flex-start; gap: 18px; }
   .cc-photo { width: 100%; max-width: 300px; }
   .cc-photo img { max-height: 440px; }
-  .cc-name { font-size: 22px; }
+  .cc-name { font-size: 28px; }
 }
 
 /* Full-screen photo */
@@ -309,3 +320,16 @@ textarea::placeholder { color: #5a6172; }
   box-shadow: 0 0 80px rgba(124,92,255,.45);
 }
 @keyframes fade { from { opacity: 0; } }
+
+
+
+/* Photo: full screen fly animation */
+.fly-bg {
+  position: fixed; inset: 0; z-index: 100; opacity: 0; cursor: zoom-out;
+  background: rgba(5,6,10,.9);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+}
+.fly-img {
+  position: fixed; z-index: 101; object-fit: cover; pointer-events: none;
+  box-shadow: 0 0 90px rgba(124,92,255,.6), 0 0 0 3px rgba(175,165,255,.45);
+}

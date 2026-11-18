@@ -234,6 +234,7 @@ function showCreator(el, lang) {
   img.src = CREATOR.photo; img.alt = CREATOR.name;
   photo.appendChild(img);
   photo.addEventListener('click', () => openPhoto(CREATOR.photo));
+  photo.style.visibility = 'hidden';      // animation cholar shomoy jaygata khali thakbe
 
   const info = document.createElement('div');
   info.className = 'cc-info';
@@ -260,6 +261,78 @@ function showCreator(el, lang) {
   info.append(label, name, a);
   row.append(photo, info);
   el.appendChild(row);
+
+  flyPhoto(photo, img);                   // NOTUN: chhoto -> full screen -> abar chhoto
+}
+
+// Photo: card theke dhire dhire full screen, kichukkhon thake, tarpor abar asol jaygay
+function flyPhoto(photoBtn, img) {
+  const GROW_MS = 1200;     // boro hote koto shomoy
+  const HOLD_MS = 4000;     // full screen e koto shomoy thakbe
+  const SHRINK_MS = 1000;   // abar chhoto hote koto shomoy
+  const ease = 'cubic-bezier(.22,.9,.24,1)';
+  const show = () => { photoBtn.style.visibility = ''; };
+
+  const ready = (img.complete && img.naturalWidth)
+    ? Promise.resolve(true)
+    : new Promise(r => { img.onload = () => r(true); img.onerror = () => r(false); });
+
+  ready.then(ok => {
+    if (!ok || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return show();
+
+    requestAnimationFrame(async () => {
+      const rectOf = () => {
+        const r = img.getBoundingClientRect();
+        return { left: r.left, top: r.top, width: r.width, height: r.height };
+      };
+      const px = r => ({ left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+
+      const from = rectOf();
+      // full screen e photo er asol ratio thik rekhe boro hobe
+      const ratio = img.naturalWidth / img.naturalHeight;
+      const maxW = window.innerWidth - 32, maxH = window.innerHeight - 32;
+      let w = maxW, h = w / ratio;
+      if (h > maxH) { h = maxH; w = h * ratio; }
+      const to = { left: (window.innerWidth - w) / 2, top: (window.innerHeight - h) / 2, width: w, height: h };
+
+      const bg = document.createElement('div');
+      bg.className = 'fly-bg';
+      const fly = document.createElement('img');
+      fly.className = 'fly-img';
+      fly.src = img.src; fly.alt = '';
+      Object.assign(fly.style, px(from));
+      document.body.append(bg, fly);
+
+      // click ba Esc chaple agei chhoto hoye jabe
+      let skip;
+      const skipped = new Promise(r => { skip = r; });
+      bg.addEventListener('click', () => skip());
+      const onKey = e => { if (e.key === 'Escape') skip(); };
+      document.addEventListener('keydown', onKey);
+
+      // 1) chhoto theke full screen
+      bg.animate([{ opacity: 0 }, { opacity: 1 }], { duration: GROW_MS * 0.7, fill: 'forwards' });
+      await fly.animate(
+        [{ ...px(from), borderRadius: '17px' }, { ...px(to), borderRadius: '16px' }],
+        { duration: GROW_MS, easing: ease, fill: 'forwards' }
+      ).finished;
+
+      // 2) full screen e kichukkhon thake
+      await Promise.race([new Promise(r => setTimeout(r, HOLD_MS)), skipped]);
+
+      // 3) abar card er asol jaygay fire ashe
+      const back = rectOf();
+      bg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: SHRINK_MS, fill: 'forwards' });
+      await fly.animate(
+        [{ ...px(to), borderRadius: '16px' }, { ...px(back), borderRadius: '17px' }],
+        { duration: SHRINK_MS, easing: ease, fill: 'forwards' }
+      ).finished;
+
+      show();
+      bg.remove(); fly.remove();
+      document.removeEventListener('keydown', onKey);
+    });
+  });
 }
 
 // Photo te click korle puro screen e dekhay
