@@ -159,7 +159,7 @@ function reveal(el, text) {
 const CREATOR = {
   name: 'Mr. Sanju',
   photo: 'creator.jpg',
-  musics: ['ELDER.mp3', 'VILLAGE.mp3', 'VISION.mp3'],     // <- song er list. Aro song jog korte chaile ekhane likhun
+  musics: ['ELDER.mp3','VISION.mp3'],     // <- song er list. Aro song jog korte chaile ekhane likhun
   insta: 'https://www.instagram.com/sam_son.22',
   handle: '@sam_son.22'
 };
