@@ -154,26 +154,42 @@ function reveal(el, text) {
   step();
 }
 
+
 // ===== Creator card =====
 const CREATOR = {
   name: 'Mr. Sanju',
   photo: 'creator.jpg',
-  music: 'intro.mp3',
+  musics: ['ELDER.mp3', 'VILLAGE.mp3', 'VISION.mp3'],     // <- song er list. Aro song jog korte chaile ekhane likhun
   insta: 'https://www.instagram.com/sam_son.22',
   handle: '@sam_son.22'
 };
 
-// Audio ekbar-i banai, ar prothom send click e "unlock" kori (iPhone/Safari er jonno dorkar)
-const creatorAudio = new Audio(CREATOR.music);
+// Shob song age-i browser e load kore rakhi, jate baajar shomoy deri na hoy
+CREATOR.musics.forEach(s => { const a = new Audio(); a.preload = 'auto'; a.src = s; });
+
+// Ekta-i audio element. Prothom click e "unlock" hoy (iPhone/Safari er jonno dorkar)
+const creatorAudio = new Audio();
 creatorAudio.preload = 'auto';
 let audioUnlocked = false;
 function unlockAudio() {
   if (audioUnlocked) return;
   audioUnlocked = true;
+  creatorAudio.src = CREATOR.musics[0];
   creatorAudio.muted = true;
   creatorAudio.play()
     .then(() => { creatorAudio.pause(); creatorAudio.currentTime = 0; creatorAudio.muted = false; })
     .catch(() => { audioUnlocked = false; creatorAudio.muted = false; });
+}
+
+// Random song, kintu ager bar-er song ta abar na
+let lastSong = -1;
+function pickSong() {
+  const list = CREATOR.musics;
+  if (list.length === 1) return list[0];
+  let i;
+  do { i = Math.floor(Math.random() * list.length); } while (i === lastSong);
+  lastSong = i;
+  return list[i];
 }
 
 // 11 second: 1s e fade in (max 80%), 10s por 1s e fade out
@@ -183,18 +199,19 @@ function playCreatorMusic() {
   musicTimers = [];
 
   const MAX = 0.75;          // volume 80%
-  const TOTAL_MS = 11000;   // total 11 second
-  const FADE_MS = 1000;     // fade in/out 1 second
+  const TOTAL_MS = 15000;   // total 15 second
+  const FADE_MS = 1200;     // fade in/out 1.2 second
   const STEP_MS = 100;
   const step = MAX / (FADE_MS / STEP_MS);
 
   try {
     creatorAudio.pause();
-    creatorAudio.currentTime = 0;
+    const song = pickSong();
+    if (!creatorAudio.src.endsWith(song)) creatorAudio.src = song;   // notun song
+    else creatorAudio.currentTime = 0;                                // ekoi song hole shuru theke
     creatorAudio.volume = 0;
     creatorAudio.play().catch(() => {});
 
-    // fade in
     let v = 0;
     const fin = setInterval(() => {
       v = Math.min(MAX, v + step);
@@ -202,7 +219,6 @@ function playCreatorMusic() {
       if (v >= MAX) clearInterval(fin);
     }, STEP_MS);
 
-    // 10 second por fade out, 11 second e bondho
     const t = setTimeout(() => {
       const fout = setInterval(() => {
         creatorAudio.volume = Math.max(0, creatorAudio.volume - step);
@@ -211,7 +227,6 @@ function playCreatorMusic() {
       musicTimers.push(fout);
     }, TOTAL_MS - FADE_MS);
 
-    // nishchit korte: thik 11 second e pause
     const stop = setTimeout(() => creatorAudio.pause(), TOTAL_MS + 200);
     musicTimers.push(fin, t, stop);
   } catch (e) {}
@@ -267,9 +282,9 @@ function showCreator(el, lang) {
 
 // Photo: card theke dhire dhire full screen, kichukkhon thake, tarpor abar asol jaygay
 function flyPhoto(photoBtn, img) {
-  const GROW_MS = 1200;     // boro hote koto shomoy
-  const HOLD_MS = 4000;     // full screen e koto shomoy thakbe
-  const SHRINK_MS = 1000;   // abar chhoto hote koto shomoy
+  const GROW_MS = 1100;     // boro hote koto shomoy
+  const HOLD_MS = 4200;     // full screen e 4.20s shomoy thakbe
+  const SHRINK_MS = 950;   // abar chhoto hote koto shomoy
   const ease = 'cubic-bezier(.22,.9,.24,1)';
   const show = () => { photoBtn.style.visibility = ''; };
 
