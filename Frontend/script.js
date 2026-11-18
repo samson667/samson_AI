@@ -21,7 +21,7 @@ const promptEl = $('prompt'), sendBtn = $('send'), thread = $('thread'), hero = 
   apply();
 })();
 
-// NOTUN: server ager conversation er ID ei variable e thake. Refresh dile null hoye jay (notun chat).
+// Server ager conversation er ID ei variable e thake. Refresh dile null hoye jay (notun chat).
 let previousInteractionId = null;
 
 promptEl.addEventListener('input', () => {
@@ -75,13 +75,6 @@ function linkify(el, text) {
   el.appendChild(document.createTextNode(text.slice(last)));
 }
 
-// Renders the AI's text safely (DOM nodes only, never innerHTML):
-//   **word**  -> <strong> with a soft glass highlight
-//   "* item"  -> "• item"
-//   http(s) links -> clickable
-// An unfinished "**" (while the text is still being typed) is treated as bold until the end,
-// so asterisks never flash on screen.
-// **bold** handle kore. Closing ** na ashle ager ongsho bold hoye thake, tai typing e asterisk dekha jay na.
 // **bold** handle kore. Closing ** na ashle ager ongsho bold hoye thake (typing e asterisk dekha jay na).
 // Closing ** na thakle strong e 'open' class dei, jate typing er shomoy glass na lage.
 function inline(parent, text) {
@@ -146,6 +139,7 @@ function render(el, text) {
   }
   el.classList.toggle('bn', /[\u0980-\u09FF]/.test(text));
 }
+
 // Gentle word-by-word reveal for a premium feel
 function reveal(el, text) {
   const words = text.split(/(\s+)/);
@@ -160,9 +154,132 @@ function reveal(el, text) {
   step();
 }
 
+// ===== Creator card =====
+const CREATOR = {
+  name: 'Mr. Sanju',
+  photo: 'creator.jpg',
+  music: 'intro.mp3',
+  insta: 'https://www.instagram.com/sam_son.22',
+  handle: '@sam_son.22'
+};
+
+// Audio ekbar-i banai, ar prothom send click e "unlock" kori (iPhone/Safari er jonno dorkar)
+const creatorAudio = new Audio(CREATOR.music);
+creatorAudio.preload = 'auto';
+let audioUnlocked = false;
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  creatorAudio.muted = true;
+  creatorAudio.play()
+    .then(() => { creatorAudio.pause(); creatorAudio.currentTime = 0; creatorAudio.muted = false; })
+    .catch(() => { audioUnlocked = false; creatorAudio.muted = false; });
+}
+
+// 11 second: 1s e fade in (max 80%), 10s por 1s e fade out
+let musicTimers = [];
+function playCreatorMusic() {
+  musicTimers.forEach(t => { clearInterval(t); clearTimeout(t); });
+  musicTimers = [];
+
+  const MAX = 0.75;          // volume 80%
+  const TOTAL_MS = 11000;   // total 11 second
+  const FADE_MS = 1000;     // fade in/out 1 second
+  const STEP_MS = 100;
+  const step = MAX / (FADE_MS / STEP_MS);
+
+  try {
+    creatorAudio.pause();
+    creatorAudio.currentTime = 0;
+    creatorAudio.volume = 0;
+    creatorAudio.play().catch(() => {});
+
+    // fade in
+    let v = 0;
+    const fin = setInterval(() => {
+      v = Math.min(MAX, v + step);
+      creatorAudio.volume = v;
+      if (v >= MAX) clearInterval(fin);
+    }, STEP_MS);
+
+    // 10 second por fade out, 11 second e bondho
+    const t = setTimeout(() => {
+      const fout = setInterval(() => {
+        creatorAudio.volume = Math.max(0, creatorAudio.volume - step);
+        if (creatorAudio.volume <= 0) { clearInterval(fout); creatorAudio.pause(); }
+      }, STEP_MS);
+      musicTimers.push(fout);
+    }, TOTAL_MS - FADE_MS);
+
+    // nishchit korte: thik 11 second e pause
+    const stop = setTimeout(() => creatorAudio.pause(), TOTAL_MS + 200);
+    musicTimers.push(fin, t, stop);
+  } catch (e) {}
+}
+
+
+
+function showCreator(el, lang) {
+  el.textContent = '';
+  el.classList.add('creator');
+
+  const row = document.createElement('div');
+  row.className = 'cc';
+
+  const photo = document.createElement('button');
+  photo.type = 'button';
+  photo.className = 'cc-photo';
+  photo.setAttribute('aria-label', 'Photo boro kore dekhun');
+  const img = document.createElement('img');
+  img.src = CREATOR.photo; img.alt = CREATOR.name;
+  photo.appendChild(img);
+  photo.addEventListener('click', () => openPhoto(CREATOR.photo));
+
+  const info = document.createElement('div');
+  info.className = 'cc-info';
+  const label = document.createElement('div');
+  label.className = 'cc-label';
+  label.textContent = lang === 'bn' ? 'আমাকে তৈরি করেছেন' : 'Created by';
+  const name = document.createElement('div');
+  name.className = 'cc-name';
+  name.textContent = CREATOR.name;
+  const a = document.createElement('a');
+  a.className = 'cc-link';
+  a.href = CREATOR.insta; a.target = '_blank'; a.rel = 'noopener noreferrer';
+  a.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="url(#igGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<defs><linearGradient id="igGrad" x1="0" y1="1" x2="1" y2="0">' +
+        '<stop offset="0" stop-color="#feda75"/><stop offset=".35" stop-color="#fa7e1e"/>' +
+        '<stop offset=".6" stop-color="#d62976"/><stop offset="1" stop-color="#962fbf"/>' +
+      '</linearGradient></defs>' +
+      '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/>' +
+      '<circle cx="17.5" cy="6.5" r="1" fill="url(#igGrad)" stroke="none"/>' +
+    '</svg><span></span>';
+  a.querySelector('span').textContent = CREATOR.handle;
+
+  info.append(label, name, a);
+  row.append(photo, info);
+  el.appendChild(row);
+}
+
+// Photo te click korle puro screen e dekhay
+function openPhoto(src) {
+  const ov = document.createElement('div');
+  ov.className = 'lightbox';
+  const big = document.createElement('img');
+  big.src = src; big.alt = CREATOR.name;
+  ov.appendChild(big);
+  const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  ov.addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(ov);
+}
+
 async function send() {
   const text = promptEl.value.trim();
   if (!text || sendBtn.disabled) return;
+  unlockAudio();                       // user er click/Enter er shomoy audio unlock
 
   sendBtn.disabled = true;
   wrap.classList.add('busy');
@@ -185,7 +302,6 @@ async function send() {
     const request = fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // NOTUN: prompt er sathe ager conversation er ID pathao
       body: JSON.stringify({ prompt: text, previous_interaction_id: previousInteractionId })
     }).then(async res => {
       const data = await res.json().catch(() => ({}));
@@ -195,8 +311,15 @@ async function send() {
 
     const [data] = await Promise.all([request, minWait]);
 
-    // NOTUN: porer message er jonno notun ID save koro
     if (data.interactionId) previousInteractionId = data.interactionId;
+
+    // Backend bollo creator proshno: photo + naam + link + music
+    if (data.type === 'creator') {
+      playCreatorMusic();
+      showCreator(pending.querySelector('.bubble'), data.lang);
+      stage.scrollTop = stage.scrollHeight;
+      return;                          // finally block tobuo cholbe
+    }
 
     pending.querySelector('.bubble').textContent = '';
     reveal(pending.querySelector('.bubble'), data.reply || '');
