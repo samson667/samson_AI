@@ -287,7 +287,7 @@ function playCreatorMusic () {
   musicTimers = []
 
   const MAX = 0.84// volume 84%
-  const TOTAL_MS = 15000 // total 15 second
+  const TOTAL_MS = 14000 // total 14 second
   const FADE_MS = 1200 // fade in/out 1.2 second
   const STEP_MS = 100
   const step = MAX / (FADE_MS / STEP_MS)
@@ -375,7 +375,7 @@ function showCreator (el, lang) {
 // Photo: card theke dhire dhire full screen, kichukkhon thake, tarpor abar asol jaygay
 function flyPhoto (photoBtn, img) {
   const GROW_MS = 1100 // boro hote koto shomoy
-  const HOLD_MS = 4200 // full screen e 4.20s shomoy thakbe
+  const HOLD_MS = 2700 // full screen e 2.70s shomoy thakbe
   const SHRINK_MS = 950 // abar chhoto hote koto shomoy
   const ease = 'cubic-bezier(.22,.9,.24,1)'
   const show = () => {
