@@ -1,7 +1,7 @@
 import express from 'express'
 import path from 'path'
 import { public_folder } from './index.js'
-
+import "dotenv/config"
 let router = express.Router()
 
 const SYSTEM_PROMPT = `
@@ -9,7 +9,7 @@ You are Samson AI, a helpful and professional AI assistant.
 
 Identity rules:
 - Your name is Samson AI. If anyone asks your name or who you are, say you are Samson AI.
-- Never say you are Gemini, Google's model, or "a large language model trained by Google".
+- Never say you are Gemini, GPT, ChatGPT, OpenAI, Llama, Groq, Google's model, or any other company's model.
 - Do not discuss which underlying model or company's technology powers you.
 - Only give the identity answer when the user clearly asks about YOU (e.g. "who are you", "tumi ke").
 For other questions like "ke se" or "who is he", use the previous messages
@@ -42,18 +42,15 @@ General rules:
 
 // ---- Creator / model question detection (fast, no AI call) ----
 const creatorRe = new RegExp([
-  // English
   String.raw`who\s+(made|created|built|developed|designed|owns?)\s+(you|this)`,
   String.raw`your\s+(creator|developer|owner|maker)`,
   String.raw`(which|what)\s+(ai\s+|llm\s+)?(model|llm)\s+(are\s+you|is\s+this|do\s+you\s+use|powers?\s+you)`,
   String.raw`who\s+is\s+your\s+(creator|developer|owner|maker)`,
-  // Banglish
   String.raw`(tomake|tomay)\s+ke\s+b[a-z]*i[ye]`,
   String.raw`ke\s+(tomake|tomay)\s+\w*bani`,
   String.raw`tumi\s+ke\s+\w*bani`,
   String.raw`tumi\s+kon\s+(ai\s+)?model`,
   String.raw`tomar\s+(creator|maker|developer|malik|nirmata)`,
-  // Bengali script
   'তোমাকে\\s+কে\\s+(বানিয়েছ|তৈরি)',
   'কে\\s+তোমাকে\\s+(বানিয়েছ|তৈরি)',
   'তুমি\\s+কোন\\s+(এআই\\s+)?মডেল',
@@ -62,6 +59,75 @@ const creatorRe = new RegExp([
 
 const bnLangRe = /[\u0980-\u09FF]|tomake|tomay|tumi|tomar|baniy/i
 const detectLang = t => (bnLangRe.test(t) ? 'bn' : 'en')
+
+// Frontend theke ashe history ke safe kore nei
+function cleanHistory(h) {
+  if (!Array.isArray(h)) return []
+  return h
+    .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+    .slice(-20)
+    .map(m => ({ role: m.role, content: m.content.slice(0, 4000) }))
+}
+
+// ---------- Model 1: Samson AI (Gemini) ----------
+async function askGemini(prompt, previousId) {
+  const body = {
+    model: 'gemini-3.1-flash-lite',
+    input: prompt,
+    system_instruction: SYSTEM_PROMPT
+  }
+  if (previousId) body.previous_interaction_id = previousId
+
+  const r = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
+    body: JSON.stringify(body)
+  })
+  const data = await r.json().catch(() => ({}))
+  const step = data.steps?.find(s => s.type === 'model_output')
+  const reply = step?.content?.map(c => c.text).join('') || ''
+  return { ok: r.ok, reply, interactionId: data.id || null }
+}
+
+// ---------- Model 2: sam-quick2.3 (Groq) ----------
+async function askGroq(prompt, history) {
+  try {
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-oss-120b',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...history,
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7
+      }),
+      signal: AbortSignal.timeout(30000)
+    })
+    const data = await r.json().catch(() => ({}))
+    const choice = data.choices?.[0]
+    const reply = (choice?.message?.content || '').trim()
+
+    // Reply khali ba error hole kharap-er karon terminal-e dekha jabe
+    if (!r.ok || !reply) {
+      console.error(
+        '[groq] status:', r.status,
+        '| finish_reason:', choice?.finish_reason,
+        '| error:', JSON.stringify(data.error || null),
+        '| message keys:', choice?.message ? Object.keys(choice.message) : null
+      )
+    }
+    return { ok: r.ok, reply }
+  } catch (error) {
+    console.error('[groq] request failed:', error.message)
+    return { ok: false, reply: '' }
+  }
+}
 
 router.get('/', (req, res) => {
   res.sendFile(path.join(public_folder, 'index.html'))
@@ -73,55 +139,42 @@ router.post('/api/chat', async (req, res) => {
     if (typeof prompt !== 'string' || prompt.trim() === '') {
       return res.status(400).json({ error: 'Message is empty.' })
     }
-    console.log(`USER Question  ${prompt} ❓`)
+
+    const model = req.body.model === 'quick' ? 'quick' : 'samson'
+    console.log(`USER Question [${model}]  ${prompt} ❓`)
 
     const previousId =
       typeof req.body.previous_interaction_id === 'string' && req.body.previous_interaction_id
         ? req.body.previous_interaction_id
         : null
 
-    // 1) Creator / model question => Gemini ke call-i korbo na
+    // 1) Creator / model question => kono AI ke call-i korbo na (duto model-e ekoi)
     if (creatorRe.test(prompt)) {
       return res.json({ type: 'creator', lang: detectLang(prompt), interactionId: previousId })
     }
 
-    const body = {
-      model: 'gemini-3.1-flash-lite',
-      input: prompt,
-      system_instruction: SYSTEM_PROMPT
+    // 2) Model onujayi alada code
+    let result
+    if (model === 'quick') {
+      result = await askGroq(prompt, cleanHistory(req.body.history))
+    } else {
+      result = await askGemini(prompt, previousId)
     }
-    if (previousId) body.previous_interaction_id = previousId
+    console.log(JSON.stringify(result.reply))
 
-    const geminiRes = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/interactions',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': process.env.GEMINI_API_KEY
-        },
-        body: JSON.stringify(body)
-      }
-    )
-
-    const data = await geminiRes.json()
-    const step = data.steps?.find(s => s.type === 'model_output')
-    const reply = step?.content?.map(c => c.text).join('') || ''
-    console.log(JSON.stringify(reply))
-
-    if (!geminiRes.ok || !reply) {
+    if (!result.ok || !result.reply) {
       return res.status(502).json({ error: 'Samson AI is unavailable right now.' })
     }
 
-    // 2) Regex na dhorle AI er marker: [[CREATOR:bn]] / [[CREATOR:en]]
-    const m = reply.match(/\[\[CREATOR(?::(\w+))?\]\]/i)
+    // 3) Regex na dhorle AI er marker: [[CREATOR:bn]] / [[CREATOR:en]]
+    const m = result.reply.match(/\[\[CREATOR(?::(\w+))?\]\]/i)
     if (m) {
       const lang = (m[1] || 'en').toLowerCase() === 'bn' ? 'bn' : 'en'
-      // previousId ferot dilam: marker er turn ta chat history te thakbe na
       return res.json({ type: 'creator', lang, interactionId: previousId })
     }
 
-    res.json({ reply, interactionId: data.id || null })
+    // Groq er kono interactionId nei, tai Gemini er chain ager moto-i thake
+    res.json({ reply: result.reply, interactionId: result.interactionId || previousId })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Something went wrong.' })
