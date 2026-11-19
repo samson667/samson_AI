@@ -286,7 +286,7 @@ function playCreatorMusic () {
   })
   musicTimers = []
 
-  const MAX = 0.75 // volume 80%
+  const MAX = 0.90// volume 90%
   const TOTAL_MS = 15000 // total 15 second
   const FADE_MS = 1200 // fade in/out 1.2 second
   const STEP_MS = 100
@@ -522,7 +522,7 @@ async function send () {
   stage.scrollTop = stage.scrollHeight
 
   // Keep the RGB glow visible for at least this long, even if the server answers instantly or fails fast
-  const MIN_BUSY_MS = currentModel === 'quick' ? 1000 : 2400
+  const MIN_BUSY_MS = currentModel === 'quick' ? 915 : 2400
   const minWait = new Promise(r => setTimeout(r, MIN_BUSY_MS))
 
   try {
