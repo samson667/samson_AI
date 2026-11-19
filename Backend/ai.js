@@ -78,7 +78,7 @@ async function askGemini(prompt, previousId) {
   }
   if (previousId) body.previous_interaction_id = previousId
 
-  const r = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
+  const r = await fetch(process.env.ASK_GEURL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
     body: JSON.stringify(body)
@@ -92,7 +92,7 @@ async function askGemini(prompt, previousId) {
 // ---------- Model 2: sam-quick2.3 (Groq) ----------
 async function askGroq(prompt, history) {
   try {
-    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const r = await fetch(process.env.ASK_QURL, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
