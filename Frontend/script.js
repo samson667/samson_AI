@@ -34,6 +34,8 @@ const promptEl = $('prompt'),
 // Server ager conversation er ID ei variable e thake. Refresh dile null hoye jay (notun chat).
 let previousInteractionId = null
 
+let chatHistory = [];   // Groq er jonno: ager shob message ekhane thake
+
 promptEl.addEventListener('input', () => {
   promptEl.style.height = 'auto'
   promptEl.style.height = promptEl.scrollHeight + 'px'
@@ -59,6 +61,37 @@ document.querySelectorAll('.chip').forEach(c =>
     send()
   })
 )
+
+// ===== Model switcher =====
+const MODELS = { samson: 'Sam Logic', quick: 'Sam Turbo 2.1' };
+let currentModel = 'samson';
+const modelEl = $('model'), modelBtn = $('modelBtn'), modelMenu = $('modelMenu'), modelLabel = $('modelLabel');
+
+function setModel(key) {
+  if (!MODELS[key]) key = 'samson';
+  currentModel = key;
+  modelLabel.textContent = MODELS[key];
+  modelMenu.querySelectorAll('.model-opt').forEach(o => o.classList.toggle('active', o.dataset.model === key));
+  try { localStorage.setItem('samson-model', key); } catch (e) {}
+}
+function toggleMenu(open) {
+  const show = open === undefined ? !modelEl.classList.contains('open') : open;
+  modelEl.classList.toggle('open', show);
+  modelBtn.setAttribute('aria-expanded', String(show));
+}
+// Button chapleo textarea theke focus jeno na jay (mobile keyboard bondho hoy na)
+[modelBtn, modelMenu].forEach(el => el.addEventListener('pointerdown', e => e.preventDefault()));
+modelBtn.addEventListener('click', () => toggleMenu());
+modelMenu.addEventListener('click', e => {
+  const opt = e.target.closest('.model-opt');
+  if (!opt) return;
+  setModel(opt.dataset.model);
+  toggleMenu(false);
+});
+document.addEventListener('click', e => { if (!modelEl.contains(e.target)) toggleMenu(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleMenu(false); });
+try { setModel(localStorage.getItem('samson-model') || 'samson'); } catch (e) { setModel('samson'); }
+
 
 function message (kind, label, text) {
   const d = document.createElement('div')
@@ -197,7 +230,7 @@ function reveal (el, text) {
 const CREATOR = {
   name: 'Mr. Sanju',
   photo: 'creator.jpg',
-  musics: ['ELDER.mp3', 'VISION.mp3'], // <- song er list. Aro song jog korte chaile ekhane likhun
+  musics: ['VISION.mp3', 'VISION.mp3'], // <- song er list. Aro song jog korte chaile ekhane likhun
   insta: 'https://www.instagram.com/sam_son.22',
   handle: '@sam_son.22'
 }
@@ -489,16 +522,18 @@ async function send () {
   stage.scrollTop = stage.scrollHeight
 
   // Keep the RGB glow visible for at least this long, even if the server answers instantly or fails fast
-  const MIN_BUSY_MS = 2600
+  const MIN_BUSY_MS = currentModel === 'quick' ? 1000 : 2400
   const minWait = new Promise(r => setTimeout(r, MIN_BUSY_MS))
 
   try {
     const request = fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+            body: JSON.stringify({
         prompt: text,
-        previous_interaction_id: previousInteractionId
+        previous_interaction_id: previousInteractionId,
+        model: currentModel,
+        history: currentModel === 'quick' ? chatHistory.slice(-20) : []
       })
     }).then(async res => {
       const data = await res.json().catch(() => ({}))
@@ -518,7 +553,7 @@ async function send () {
       stage.scrollTop = stage.scrollHeight
       return // finally block tobuo cholbe
     }
-
+        chatHistory.push({ role: 'user', content: text }, { role: 'assistant', content: data.reply || '' });
     pending.querySelector('.bubble').textContent = ''
     reveal(pending.querySelector('.bubble'), data.reply || '')
   } catch (err) {
