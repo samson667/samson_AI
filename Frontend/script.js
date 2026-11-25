@@ -230,7 +230,7 @@ function reveal (el, text) {
 const CREATOR = {
   name: 'Mr. Sanju',
   photo: 'creator.jpg',
-  musics: ['VISION.mp3', 'VISION.mp3'], // <- song er list. Aro song jog korte chaile ekhane likhun
+  musics: ['VISION.mp3', 'ELDERs.mp3'], // <- song er list. Aro song jog korte chaile ekhane likhun
   insta: 'https://www.instagram.com/sam_son.22',
   handle: '@sam_son.22'
 }
@@ -375,7 +375,7 @@ function showCreator (el, lang) {
 // Photo: card theke dhire dhire full screen, kichukkhon thake, tarpor abar asol jaygay
 function flyPhoto (photoBtn, img) {
   const GROW_MS = 1100 // boro hote koto shomoy
-  const HOLD_MS = 2700 // full screen e 2.70s shomoy thakbe
+  const HOLD_MS = 2900 // full screen e 2.70s shomoy thakbe
   const SHRINK_MS = 950 // abar chhoto hote koto shomoy
   const ease = 'cubic-bezier(.22,.9,.24,1)'
   const show = () => {
